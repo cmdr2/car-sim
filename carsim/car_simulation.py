@@ -4,7 +4,7 @@ from .track import TrackSpline
 
 
 class Car:
-    def __init__(self, mass, tire_grip, wheel_base, max_steering_angle):
+    def __init__(self, mass=1000, tire_grip=1.2, wheel_base=2.5, max_steering_angle=np.radians(30)):
         self.mass = mass
         self.tire_grip = tire_grip
         self.wheel_base = wheel_base
@@ -25,7 +25,7 @@ class Car:
         self.speed += acceleration
 
         # Update position
-        self.velocity = np.array([self.speed * np.cos(self.heading), self.speed * np.sin(self.heading)])
+        self.velocity = np.array([self.speed * np.sin(self.heading), self.speed * np.cos(self.heading)])
         self.position += self.velocity
 
         # Apply Ackermann steering and centripetal force
