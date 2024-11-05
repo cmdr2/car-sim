@@ -13,7 +13,7 @@ tire_width = 305  #  mm
 tire_hardness_factor = 0.5
 tire_pressure = 30  # PSI
 tire_temperature = 90  # C
-tire_health = 0.5
+tire_wear = 0.5
 camber = -2.5  # degrees
 
 effective_grip = get_tire_grip(
@@ -25,7 +25,7 @@ effective_grip = get_tire_grip(
     tire_hardness_factor,
     tire_pressure,
     tire_temperature,
-    tire_health,
+    tire_wear,
     camber,
 )
 print(f"Effective Grip: {effective_grip}")
@@ -40,7 +40,7 @@ tire_width = [305, 305]  #  mm
 tire_hardness_factor = [0.5, 0.5]
 tire_pressure = [30, 30]  # PSI
 tire_temperature = [100, 90]  # C
-tire_health = [0.7, 0.5]
+tire_wear = [0.2, 0.5]
 camber = [-2.5, -2.5]  # degrees
 
 effective_grip = get_tire_grip(
@@ -52,7 +52,7 @@ effective_grip = get_tire_grip(
     tire_hardness_factor,
     tire_pressure,
     tire_temperature,
-    tire_health,
+    tire_wear,
     camber,
 )
 print(f"Effective Grip: {effective_grip}")
@@ -66,7 +66,7 @@ from carsim.util import interpolate_curve, weighted_sum, as_np_array
 OPTIMAL_CAMBER_FOR_REFERENCE_TIRE = -3.5  # Base optimal camber for reference width tires
 REFERENCE_TIRE_WIDTH = 305  # Reference width in mm (standard tire width)
 REFERENCE_OPTIMAL_PRESSURE = 28  # psi
-REFERENCE_HARDNESS_TEMP_LOW_CURVE_POINTS = [
+REFERENCE_HARDNESS_TO_TEMP_LOW_CURVE = [
     (0, 45),
     (0.4, 55),
     (0.5, 75),
@@ -76,7 +76,7 @@ REFERENCE_HARDNESS_TEMP_LOW_CURVE_POINTS = [
     (0.9, 85),
     (1.0, 85),
 ]  # https://web.archive.org/web/20240714102648/https://simracingsetup.com/f1-24/f1-24-ideal-tyre-temperatures/
-REFERENCE_HARDNESS_TEMP_HIGH_CURVE_POINTS = [
+REFERENCE_HARDNESS_TO_TEMP_HIGH_CURVE = [
     (0, 65),
     (0.4, 75),
     (0.5, 105),
@@ -86,18 +86,18 @@ REFERENCE_HARDNESS_TEMP_HIGH_CURVE_POINTS = [
     (0.9, 120),
     (1.0, 120),
 ]
-REFERENCE_TIRE_HEALTH_CURVE_POINTS = [
-    (0, 0),
-    (0.1, 0.03),
-    (0.2, 0.08),
-    (0.3, 0.2),
-    (0.4, 0.5),
+REFERENCE_TIRE_WEAR_TO_GRIP_CURVE = [
+    (0.0, 1.0),
+    (0.1, 0.95),
+    (0.2, 0.9),
+    (0.3, 0.82),
+    (0.4, 0.75),
     (0.5, 0.6),
-    (0.6, 0.75),
-    (0.7, 0.82),
-    (0.8, 0.9),
-    (0.9, 0.95),
-    (1.0, 1.0),
+    (0.6, 0.5),
+    (0.7, 0.2),
+    (0.8, 0.08),
+    (0.9, 0.03),
+    (1.0, 0),
 ]
 FRICTION_ASPHALT = 1.0
 FRICTION_CONCRETE = 1.1
@@ -113,7 +113,7 @@ TIRE_PRESSURE_EFFECT = 0.3
 TIRE_WIDTH_EFFECT = 0.2
 CAMBER_EFFECT = 0.2
 TEMPERATURE_EFFECT = 0.5
-TIRE_HEALTH_EFFECT = 1
+TIRE_WEAR_EFFECT = 1
 
 
 # Friction based on material properties of tire and road
@@ -242,8 +242,8 @@ def temperature_effect(tire_temperature, tire_hardness_factor):
 
     :return: float: Friction adjustment based on temperature.
     """
-    low_optimal = interpolate_curve(tire_hardness_factor, REFERENCE_HARDNESS_TEMP_LOW_CURVE_POINTS)
-    high_optimal = interpolate_curve(tire_hardness_factor, REFERENCE_HARDNESS_TEMP_HIGH_CURVE_POINTS)
+    low_optimal = interpolate_curve(tire_hardness_factor, REFERENCE_HARDNESS_TO_TEMP_LOW_CURVE)
+    high_optimal = interpolate_curve(tire_hardness_factor, REFERENCE_HARDNESS_TO_TEMP_HIGH_CURVE)
 
     # mask for different temp conditions
     cold_temp_mask = tire_temperature < low_optimal
@@ -267,18 +267,18 @@ def temperature_effect(tire_temperature, tire_hardness_factor):
     return grip
 
 
-def tire_health_effect(tire_health):
+def tire_wear_effect(tire_wear):
     """
-    Calculate the friction effect based on tire health.
+    Calculate the friction effect based on tire wear.
 
-    :param tire_health: Tire health as a value between 0 and 1 (0 = worn out, 1 = new).
+    :param tire_wear: Tire wear as a value between 0 and 1 (0 = new, 1 = worn out).
 
-    :return: Friction adjustment based on tire health.
+    :return: Friction adjustment based on tire wear.
     """
-    tire_health = np.clip(tire_health, 0, 1)
+    tire_wear = np.clip(tire_wear, 0, 1)
 
-    # Friction effect scales with tire health
-    return interpolate_curve(tire_health, REFERENCE_TIRE_HEALTH_CURVE_POINTS)
+    # Friction effect scales with tire wear
+    return interpolate_curve(tire_wear, REFERENCE_TIRE_WEAR_TO_GRIP_CURVE)
 
 
 # Final function to combine all factors and return the effective friction coefficient (aka "grip")
@@ -291,7 +291,7 @@ def get_tire_grip(
     tire_hardness_factor,
     tire_pressure,
     tire_temperature,
-    tire_health,
+    tire_wear,
     camber,
 ):
     """
@@ -305,7 +305,7 @@ def get_tire_grip(
     :param tire_hardness_factor: Tire hardness (0 to 1, where 0 is soft and 1 is hard).
     :param tire_pressure: Tire pressure in psi (pounds per square inch).
     :param tire_temperature (float): The current tire temperature in degrees Celsius.
-    :param tire_health: Tire health as a value between 0 and 1 (0 = worn out, 1 = new).
+    :param tire_wear: Tire wear as a value between 0 and 1 (0 = new, 1 = worn out).
     :param camber: Camber angle in degrees.
 
     :return: Effective grip
@@ -320,7 +320,7 @@ def get_tire_grip(
     tire_hardness_factor = as_np_array(tire_hardness_factor)
     tire_pressure = as_np_array(tire_pressure)
     tire_temperature = as_np_array(tire_temperature)
-    tire_health = as_np_array(tire_health)
+    tire_wear = as_np_array(tire_wear)
     camber = as_np_array(camber)
 
     # calculate the effects of the different factors
@@ -330,11 +330,11 @@ def get_tire_grip(
     width_factor = tire_width_effect(tire_width)
     camber_factor = camber_effect(camber, tire_width)
     temperature_factor = temperature_effect(tire_temperature, tire_hardness_factor)
-    tire_health_factor = tire_health_effect(tire_health)
+    tire_wear_factor = tire_wear_effect(tire_wear)
 
     # print("Raw values:")
     # print(
-    #     f"{base_friction=}\n{hardness_factor=}\n{pressure_factor=}\n{width_factor=}\n{camber_factor=}\n{temperature_factor=}\n{tire_health_factor=}"
+    #     f"{base_friction=}\n{hardness_factor=}\n{pressure_factor=}\n{width_factor=}\n{camber_factor=}\n{temperature_factor=}\n{tire_wear_factor=}"
     # )
 
     # Combine all factors to calculate the effective friction coefficient (aka "grip")
@@ -345,7 +345,7 @@ def get_tire_grip(
             width_factor,
             camber_factor,
             temperature_factor,
-            tire_health_factor,
+            tire_wear_factor,
         ],
         [
             TIRE_HARDNESS_EFFECT,
@@ -353,7 +353,7 @@ def get_tire_grip(
             TIRE_WIDTH_EFFECT,
             CAMBER_EFFECT,
             TEMPERATURE_EFFECT,
-            TIRE_HEALTH_EFFECT,
+            TIRE_WEAR_EFFECT,
         ],
         print_labels=False,
         labels=[
@@ -362,7 +362,7 @@ def get_tire_grip(
             "width_factor",
             "camber_factor",
             "temperature_factor",
-            "tire_health_factor",
+            "tire_wear_factor",
         ],
     )
     # print(f"Grip adjustment: {grip_adjustment}")
