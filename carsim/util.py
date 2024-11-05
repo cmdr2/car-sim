@@ -1,22 +1,29 @@
 import numpy as np
-from scipy.interpolate import interp1d
 
 
-def interpolate_curve(points):
+def interpolate_curve(x, points):
     x_points, y_points = zip(*points)
-    interpolation_function = interp1d(x_points, y_points, kind="linear", fill_value="extrapolate")
-    return lambda x: interpolation_function(x)
+    return np.interp(x, x_points, as_np_array(y_points))
 
 
 def weighted_sum(values, weights, print_labels=False, labels=None):
     values = np.array(values)
-    weights = np.array(weights)
+    weights = np.array(weights).reshape(-1, 1)
+
+    if values.ndim == 1:
+        values = values.reshape(-1, 1)
 
     if print_labels:
         x = values * weights / np.sum(weights)
         print("")
         for l, v in zip(labels, x):
-            print(f"{l}: {v:0.2f}")
+            print(l, v)
         print("")
 
-    return np.sum(values * weights) / np.sum(weights)
+    return np.sum(values * weights, axis=0) / np.sum(weights)
+
+
+def as_np_array(arr):
+    if not isinstance(arr, np.ndarray):
+        arr = np.array(arr)
+    return arr
