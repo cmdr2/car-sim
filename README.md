@@ -8,9 +8,14 @@ This is not meant to be a simulator of real-world behavior! It is designed for s
 
 This module is meant to be usable in a variety of scenarios, so it intentionally does not contain any game or visual elements. You can use it for racing line simulations, machine learning, games (real-time or batch).
 
+## Implemented
+Tire:
+- [grip](https://github.com/cmdr2/car-sim/wiki/Tire-Friction-Calculation)
+- [reaction force](https://github.com/cmdr2/car-sim/wiki/Tire-Force-Calculation)
+
 ## Todo
 Dynamics:
-- tire temperature based on usage, tire hardness, road type, surface temperature
-- tire health based on temperature and usage
+- tire temperature based on usage, tire hardness, road type, road temperature, slip (lateral and longitudinal)
+- tire wear based on temperature, slip (lateral and longitudinal) and usage
 - tire pressure based on temperature
 - camber based on load and suspension stiffness
