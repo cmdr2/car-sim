@@ -10,8 +10,8 @@ This module is meant to be usable in a variety of scenarios, so it intentionally
 
 ## Implemented
 Tire:
-- grip ([code](https://github.com/cmdr2/car-sim/blob/main/carsim/tire/grip.py), [writeup](https://github.com/cmdr2/car-sim/wiki/Tire-Friction-Calculation))
-- reaction force ([code](https://github.com/cmdr2/car-sim/blob/main/carsim/tire/force.py), [writeup](https://github.com/cmdr2/car-sim/wiki/Tire-Force-Calculation))
+- [grip](https://github.com/cmdr2/car-sim/wiki/Tire-Friction-Calculation)
+- [reaction force](https://github.com/cmdr2/car-sim/wiki/Tire-Force-Calculation)
 
 ## Todo
 Dynamics:
